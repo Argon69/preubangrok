@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="es">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Chat En Vivo</title>
+	<meta name="description" content="Chat publico en vivo con Python y HTML puro.">
+	<style>
+		:root {
+			--bg: #f5f0ea;
+			--ink: #1e1f21;
+			--muted: #5a5d62;
+			--panel: #fffdfb;
+			--line: #dccfbe;
+			--accent: #c2410c;
+			--accent-dark: #9a340c;
+			--safe: #0f766e;
+			--bubble: #fff;
+			--mine: #fef2e8;
+			--radius: 18px;
+			--shadow: 0 12px 28px rgba(25, 18, 12, 0.12);
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			color: var(--ink);
+			font-family: "Nunito Sans", "Segoe UI", sans-serif;
+			min-height: 100vh;
+			background:
+				radial-gradient(80rem 40rem at -10% -10%, #ffe1cb 0%, transparent 50%),
+				radial-gradient(60rem 30rem at 110% -5%, #e1f0ee 0%, transparent 50%),
+				linear-gradient(180deg, #f6f2ec 0%, var(--bg) 100%);
+			display: grid;
+			place-items: center;
+			padding: 20px;
+		}
+
+		.app {
+			width: min(920px, 100%);
+			background: var(--panel);
+			border: 1px solid var(--line);
+			border-radius: calc(var(--radius) + 6px);
+			box-shadow: var(--shadow);
+			overflow: hidden;
+			animation: in 500ms ease;
+		}
+
+		.top {
+			padding: 18px 20px;
+			background: linear-gradient(120deg, #fff6ec 0%, #fff 55%, #f1fbfa 100%);
+			border-bottom: 1px solid #ebdece;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 10px;
+			flex-wrap: wrap;
+		}
+
+		.title {
+			margin: 0;
+			font-family: "Space Grotesk", "Avenir Next", sans-serif;
+			font-size: clamp(1.2rem, 2.7vw, 1.75rem);
+		}
+
+		.status {
+			font-size: 0.9rem;
+			color: #1f4d49;
+			background: #eaf6f4;
+			border: 1px solid #c5e2de;
+			border-radius: 999px;
+			padding: 6px 10px;
+		}
+
+		.layout {
+			display: grid;
+			grid-template-columns: 1.2fr 2fr;
+			min-height: 68vh;
+		}
+
+		.side {
+			border-right: 1px solid #ebdece;
+			padding: 18px;
+			background: #fffcf9;
+			display: grid;
+			align-content: start;
+			gap: 14px;
+		}
+
+		.side h2 {
+			margin: 0;
+			font-size: 1rem;
+		}
+
+		.label {
+			font-size: 0.88rem;
+			color: var(--muted);
+			margin-bottom: 4px;
+			display: block;
+		}
+
+		.input,
+		.textarea {
+			width: 100%;
+			border: 1px solid #d8cab7;
+			border-radius: 12px;
+			padding: 10px 11px;
+			font: inherit;
+			background: #fff;
+			color: var(--ink);
+		}
+
+		.textarea {
+			min-height: 100px;
+			resize: vertical;
+		}
+
+		.button {
+			border: 0;
+			border-radius: 12px;
+			padding: 10px 14px;
+			font-weight: 700;
+			font: inherit;
+			cursor: pointer;
+			background: var(--accent);
+			color: #fff;
+			transition: background-color 150ms ease;
+		}
+
+		.button:hover { background: var(--accent-dark); }
+
+		.small {
+			color: var(--muted);
+			font-size: 0.86rem;
+			line-height: 1.4;
+			margin: 0;
+		}
+
+		.chat {
+			display: grid;
+			grid-template-rows: 1fr auto;
+			min-height: 0;
+			background: linear-gradient(180deg, #fff 0%, #fff8f2 100%);
+		}
+
+		.messages {
+			overflow: auto;
+			padding: 16px;
+			display: grid;
+			gap: 10px;
+			align-content: start;
+		}
+
+		.msg {
+			max-width: min(85%, 600px);
+			background: var(--bubble);
+			border: 1px solid #ebdece;
+			border-radius: 14px;
+			padding: 10px 12px;
+			box-shadow: 0 4px 10px rgba(28, 16, 10, 0.05);
+			animation: pop 160ms ease;
+		}
+
+		.msg.me {
+			justify-self: end;
+			background: var(--mine);
+			border-color: #f0d6c2;
+		}
+
+		.meta {
+			display: flex;
+			gap: 6px;
+			align-items: baseline;
+			flex-wrap: wrap;
+			margin-bottom: 4px;
+		}
+
+		.author {
+			font-weight: 800;
+			font-size: 0.88rem;
+		}
+
+		.time {
+			font-size: 0.76rem;
+			color: var(--muted);
+		}
+
+		.text {
+			margin: 0;
+			white-space: pre-wrap;
+			overflow-wrap: anywhere;
+			line-height: 1.42;
+		}
+
+		.send {
+			border-top: 1px solid #ebdece;
+			padding: 12px;
+			display: grid;
+			grid-template-columns: 1fr auto;
+			gap: 8px;
+			background: #fff;
+		}
+
+		.note {
+			margin: 10px 0 0;
+			color: var(--safe);
+			font-size: 0.85rem;
+		}
+
+		@keyframes in {
+			from { opacity: 0; transform: translateY(6px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		@keyframes pop {
+			from { opacity: 0; transform: translateY(4px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		@media (max-width: 860px) {
+			.layout { grid-template-columns: 1fr; }
+			.side { border-right: 0; border-bottom: 1px solid #ebdece; }
+			.chat { min-height: 55vh; }
+		}
+	</style>
+</head>
+<body>
+	<main class="app" aria-label="Chat en vivo">
+		<header class="top">
+			<h1 class="title">Chat En Vivo Publico</h1>
+			<div class="status" id="status">Conectando...</div>
+		</header>
+
+		<section class="layout">
+			<aside class="side">
+				<h2>Tu perfil rapido</h2>
+				<div>
+					<label class="label" for="name">Nombre</label>
+					<input class="input" id="name" maxlength="30" placeholder="Tu nombre">
+				</div>
+				<p class="small">Comparte la URL de ngrok y todos veran este mismo chat en tiempo real.</p>
+				<p class="small">Cada mensaje llega al instante sin recargar la pagina.</p>
+			</aside>
+
+			<section class="chat">
+				<div id="messages" class="messages" aria-live="polite"></div>
+				<form id="send-form" class="send">
+					<textarea id="text" class="textarea" maxlength="500" placeholder="Escribe un mensaje..."></textarea>
+					<button class="button" type="submit">Enviar</button>
+				</form>
+			</section>
+		</section>
+	</main>
+
+	<script>
+		const state = {
+			lastId: 0,
+			eventSource: null,
+		};
+
+		const statusEl = document.getElementById("status");
+		const messagesEl = document.getElementById("messages");
+		const formEl = document.getElementById("send-form");
+		const nameEl = document.getElementById("name");
+		const textEl = document.getElementById("text");
+
+		const savedName = localStorage.getItem("chat_name");
+		if (savedName) {
+			nameEl.value = savedName;
+		}
+
+		nameEl.addEventListener("change", () => {
+			localStorage.setItem("chat_name", nameEl.value.trim());
+		});
+
+		function setStatus(text, connected) {
+			statusEl.textContent = text;
+			statusEl.style.background = connected ? "#eaf6f4" : "#fff2e9";
+			statusEl.style.borderColor = connected ? "#c5e2de" : "#f3c9ac";
+			statusEl.style.color = connected ? "#1f4d49" : "#844319";
+		}
+
+		function formatTime(timestamp) {
+			const date = new Date(timestamp);
+			return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+		}
+
+		function addMessage(msg) {
+			if (!msg || typeof msg.id !== "number" || msg.id <= state.lastId) {
+				return;
+			}
+
+			state.lastId = msg.id;
+
+			const currentName = (nameEl.value || "Anonimo").trim();
+			const isMine = msg.author === currentName;
+
+			const item = document.createElement("article");
+			item.className = isMine ? "msg me" : "msg";
+
+			const meta = document.createElement("div");
+			meta.className = "meta";
+
+			const author = document.createElement("span");
+			author.className = "author";
+			author.textContent = msg.author;
+
+			const time = document.createElement("span");
+			time.className = "time";
+			time.textContent = formatTime(msg.timestamp);
+
+			const text = document.createElement("p");
+			text.className = "text";
+			text.textContent = msg.text;
+
+			meta.append(author, time);
+			item.append(meta, text);
+			messagesEl.appendChild(item);
+			messagesEl.scrollTop = messagesEl.scrollHeight;
+		}
+
+		async function loadInitialMessages() {
+			const res = await fetch("/messages");
+			const data = await res.json();
+			(data.messages || []).forEach(addMessage);
+		}
+
+		function connectEvents() {
+			if (state.eventSource) {
+				state.eventSource.close();
+			}
+
+			const source = new EventSource(`/events?after=${state.lastId}`);
+			state.eventSource = source;
+
+			source.onopen = () => setStatus("Conectado", true);
+
+			source.onmessage = (event) => {
+				try {
+					const data = JSON.parse(event.data);
+					(data.messages || []).forEach(addMessage);
+				} catch (error) {
+					console.error("Evento invalido", error);
+				}
+			};
+
+			source.onerror = () => {
+				setStatus("Reconectando...", false);
+			};
+		}
+
+		formEl.addEventListener("submit", async (event) => {
+			event.preventDefault();
+
+			const author = (nameEl.value || "Anonimo").trim() || "Anonimo";
+			const text = textEl.value.trim();
+			if (!text) {
+				return;
+			}
+
+			try {
+				const res = await fetch("/send", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ author, text }),
+				});
+
+				if (!res.ok) {
+					const err = await res.json();
+					alert(err.error || "No se pudo enviar el mensaje");
+					return;
+				}
+
+				textEl.value = "";
+				textEl.focus();
+			} catch (error) {
+				alert("No hay conexion con el servidor");
+				console.error(error);
+			}
+		});
+
+		loadInitialMessages().then(connectEvents).catch(() => {
+			setStatus("Sin conexion", false);
+			setTimeout(() => {
+				loadInitialMessages().then(connectEvents).catch(() => {});
+			}, 1500);
+		});
+	</script>
+</body>
+</html>
