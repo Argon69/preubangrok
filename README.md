@@ -37,3 +37,12 @@ Comparte la URL publica que te da ngrok para que entren al chat.
 
 El chat es publico si lo expones por ngrok.
 No compartas informacion sensible.
+
+## Comando de instalcion Ngrok oficial:
+
+curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+  | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+  && echo "deb https://ngrok-agent.s3.amazonaws.com buster main" \
+  | sudo tee /etc/apt/sources.list.d/ngrok.list \
+  && sudo apt update \
+  && sudo apt install ngrok
